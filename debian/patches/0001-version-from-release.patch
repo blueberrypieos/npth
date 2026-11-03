@@ -1,0 +1,29 @@
+Description: The version list is the release's
+ configure.ac takes the version from ./autogen.sh --find-version, which
+ asks git. The source package has no .git, so it would give
+ 1.8-unknown as a beta. The list is the one git gives at the tag.
+Author: The Blueberry Pie OS Authors
+Forwarded: not-needed
+Last-Update: 2026-11-03
+---
+--- a/configure.ac
++++ b/configure.ac
+@@ -15,6 +15,8 @@
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this program; if not, see <http://www.gnu.org/licenses/>.
++#
++# Modified 2026-11-03: the version list is the release's, not git's (LGPL-2.1 section 2(b)).
+ 
+ # Process this file with autoconf to produce a configure script.
+ 
+@@ -40,8 +42,7 @@
+ # the decimalized short revision number, a beta version string and a
+ # flag indicating a development version (mym4_isbeta).  Note that the
+ # m4 processing is done by autoconf and not during the configure run.
+-m4_define([mym4_verslist], m4_split(m4_esyscmd([./autogen.sh --find-version] \
+-                           mym4_package mym4_major mym4_minor),[:]))
++m4_define([mym4_verslist], m4_split([npth-1.8:no:yes:1.8:1.8::64905e7:25744:64905e765aad9de6054ef70a97fc30bd992ce999:],[:]))
+ m4_define([mym4_isbeta],       m4_argn(2, mym4_verslist))
+ m4_define([mym4_version],      m4_argn(4, mym4_verslist))
+ m4_define([mym4_revision],     m4_argn(7, mym4_verslist))

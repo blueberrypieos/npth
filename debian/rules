@@ -1,0 +1,30 @@
+#!/usr/bin/make -f
+# SPDX-License-Identifier: BSD-2-Clause
+# Copyright (c) 2026 The Blueberry Pie OS Authors
+
+include /usr/share/pietoolchain/rules.mk
+
+BINUTILS := $(TOOLCHAIN)/prefix/bin/aarch64-apple-darwin
+CONFIGURE_FLAGS := --host=aarch64-apple-darwin --build=$(shell uname -m)-pc-linux-gnu \
+	--prefix=/usr --disable-static \
+	
+
+$(OBJ)/.configured:
+	@mkdir -p $(OBJ)
+	cd $(SRCROOT) && autoreconf -fi > /dev/null 2>&1
+	cd $(OBJ) && CC=$(CC) CFLAGS="$(BASE_CFLAGS)" LDFLAGS="$(BASE_LDFLAGS)" \
+		AR=$(BINUTILS)-ar RANLIB=$(BINUTILS)-ranlib NM=$(NM) STRIP=$(STRIP) LD=$(BINUTILS)-ld \
+		OTOOL=$(BINUTILS)-otool LIPO=$(BINUTILS)-lipo NMEDIT=$(BINUTILS)-nmedit \
+		$(SRCROOT)/configure $(CONFIGURE_FLAGS) > configure.log
+	touch $@
+
+$(OBJ)/.built: $(OBJ)/.configured
+	set -e; for d in src; do $(MAKE) -C $(OBJ)/$$d -j$(JOBS); done
+	touch $@
+
+install: $(OBJ)/.built
+	$(MAKE) -C $(OBJ)/src DESTDIR=$(ROOT) install-libLTLIBRARIES install-nodist_includeHEADERS
+	$(MAKE) -C $(OBJ)/. DESTDIR=$(ROOT) install-pkgconfigDATA install-m4dataDATA
+	rm -f $(ROOT)/usr/lib/libnpth.la
+
+.PHONY: install

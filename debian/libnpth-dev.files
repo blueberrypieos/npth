@@ -1,0 +1,4 @@
+usr/include/npth.h
+usr/lib/libnpth.dylib
+usr/lib/pkgconfig/npth.pc
+usr/share/aclocal/npth.m4
