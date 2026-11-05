@@ -2,29 +2,53 @@
 # SPDX-License-Identifier: BSD-2-Clause
 # Copyright (c) 2026 The Blueberry Pie OS Authors
 
+ifneq ($(shell pwd -P | LC_ALL=C awk '!/^[A-Za-z0-9\/._+~-]+$$/ { bad = 1 } END { print ((bad || NR != 1) ? "bad" : "ok") }'),ok)
+$(error debian/rules: the path of the tree may have only letters, digits and /._+~-: $(CURDIR))
+endif
+ifneq ($(CURDIR),$(shell pwd -P))
+$(error debian/rules: make does not see the path of the tree as the shell does)
+endif
+ifneq ($(shell test -L debian -o -L debian/build -o -L debian/files.new && echo link; \
+	test -d debian/build && find debian/build -mindepth 1 -maxdepth 1 -type l; \
+	test -d debian/build/pie && find debian/build/pie -mindepth 1 -type l \( -xtype d -o \
+		\( ! -path debian/build/pie/bin/install_name_tool ! -path debian/build/pie/bin/otool \) \)),)
+$(error debian/rules: debian, debian/build or something rules.mk writes in it is a symlink)
+endif
+
 include /usr/share/pietoolchain/rules.mk
+
+SRC := $(W)/src
+export PIE_REPRO_SOURCE := $(SRC)
+EXPORTS := libnpth_version_script_cmd=-Wl,-exported_symbols_list,$(OBJ)/libnpth.exp
 
 BINUTILS := $(TOOLCHAIN)/prefix/bin/aarch64-apple-darwin
 CONFIGURE_FLAGS := --host=aarch64-apple-darwin --build=$(shell uname -m)-pc-linux-gnu \
-	--prefix=/usr --disable-static \
-	
+	--prefix=/usr --disable-static
 
 $(OBJ)/.configured:
-	@mkdir -p $(OBJ)
-	cd $(SRCROOT) && autoreconf -fi > /dev/null 2>&1
+	rm -rf $(SRC) $(OBJ) && mkdir -p $(SRC) $(OBJ)
+	cd $(SRCROOT) && find . -mindepth 1 -maxdepth 1 ! -name debian ! -name .pc ! -name .git -exec cp -a -t $(SRC) -- {} +
+	cd $(SRC) && find . -type l -exec sh -c 's=$$(pwd -P); for l; do case "$$(realpath -m -- "$$l")" in "$$s"|"$$s"/*) ;; *) echo "debian/rules: $$l leads outside the copy" >&2; exit 1;; esac; done' sh {} +
+	cd $(SRC) && autoreconf -fi > $(OBJ)/autoreconf.log 2>&1 || { cat $(OBJ)/autoreconf.log; exit 1; }
+	sed -e 's/#.*//' $(SRC)/src/libnpth.vers | sed -n '/global:/,/local:/p' | sed -e 's/global://' -e 's/local:.*//' | \
+		tr ';' '\n' | sed -n 's/^[[:space:]]*\([A-Za-z_][A-Za-z0-9_]*\)[[:space:]]*$$/_\1/p' > $(OBJ)/libnpth.exp
+	test -s $(OBJ)/libnpth.exp
 	cd $(OBJ) && CC=$(CC) CFLAGS="$(BASE_CFLAGS)" LDFLAGS="$(BASE_LDFLAGS)" \
 		AR=$(BINUTILS)-ar RANLIB=$(BINUTILS)-ranlib NM=$(NM) STRIP=$(STRIP) LD=$(BINUTILS)-ld \
 		OTOOL=$(BINUTILS)-otool LIPO=$(BINUTILS)-lipo NMEDIT=$(BINUTILS)-nmedit \
-		$(SRCROOT)/configure $(CONFIGURE_FLAGS) > configure.log
+		$(SRC)/configure $(CONFIGURE_FLAGS) > configure.log
 	touch $@
 
 $(OBJ)/.built: $(OBJ)/.configured
-	set -e; for d in src; do $(MAKE) -C $(OBJ)/$$d -j$(JOBS); done
+	$(MAKE) -C $(OBJ)/src $(EXPORTS)
 	touch $@
 
 install: $(OBJ)/.built
-	$(MAKE) -C $(OBJ)/src DESTDIR=$(ROOT) install-libLTLIBRARIES install-nodist_includeHEADERS
-	$(MAKE) -C $(OBJ)/. DESTDIR=$(ROOT) install-pkgconfigDATA install-m4dataDATA
+	$(MAKE) -C $(OBJ)/src DESTDIR=$(ROOT) $(EXPORTS) install-libLTLIBRARIES install-nodist_includeHEADERS
+	$(MAKE) -C $(OBJ) DESTDIR=$(ROOT) install-pkgconfigDATA install-m4dataDATA
 	rm -f $(ROOT)/usr/lib/libnpth.la
+	$(NM) -gUj $(ROOT)/usr/lib/libnpth.dylib | LC_ALL=C sort -u > $(OBJ)/exported.txt
+	LC_ALL=C sort -u $(OBJ)/libnpth.exp | diff - $(OBJ)/exported.txt > $(OBJ)/exported.diff || \
+		{ cat $(OBJ)/exported.diff; echo "debian/rules: libnpth.dylib does not export exactly the symbols in libnpth.exp" >&2; exit 1; }
 
 .PHONY: install

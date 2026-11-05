@@ -1,10 +1,11 @@
 Description: The version list is the release's
  configure.ac takes the version from ./autogen.sh --find-version, which
- asks git. The source package has no .git, so it would give
- 1.8-unknown as a beta. The list is the one git gives at the tag.
+ asks git. Outside git it gives 1.8-unknown as a beta, and the source
+ package has neither .git nor autogen.sh. The list is the one git gives
+ at the tag.
 Author: The Blueberry Pie OS Authors
 Forwarded: not-needed
-Last-Update: 2026-11-03
+Last-Update: 2026-11-04
 ---
 --- a/configure.ac
 +++ b/configure.ac

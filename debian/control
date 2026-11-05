@@ -12,7 +12,7 @@ Rules-Requires-Root: no
 Package: libnpth
 Architecture: darwin-arm64
 Depends: libsystem
-Description: The New GNU Portable Threads library
+Description: New GNU Portable Threads library
  nPth is the thread library that GnuPG's programs use: a portable layer
  over POSIX threads that runs one thread at a time.
 
@@ -20,6 +20,6 @@ Package: libnpth-dev
 Section: libdevel
 Architecture: darwin-arm64
 Depends: libnpth (= ${binary:Version})
-Description: The New GNU Portable Threads library: development files
+Description: New GNU Portable Threads library: development files
  The header, the pkg-config file and the autoconf macro for building
  programs against nPth.

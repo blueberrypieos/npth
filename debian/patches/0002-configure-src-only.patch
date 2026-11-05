@@ -1,0 +1,87 @@
+Description: Only src/ is configured and built
+ The packages ship only the library, its header, pkg-config file and
+ autoconf macro. Without w32/ and tests/ in configure.ac and SUBDIRS,
+ automake and configure do not read the Windows files or the test
+ makefile. Without npth-config, configure does not read its template. In
+ foreign mode automake needs no AUTHORS, ChangeLog, INSTALL, NEWS,
+ README or COPYING.LIB.
+Author: The Blueberry Pie OS Authors
+Forwarded: not-needed
+Last-Update: 2026-11-04
+---
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -15,6 +15,9 @@
+ #
+ # You should have received a copy of the GNU Lesser General Public
+ # License along with this program; if not, see <http://www.gnu.org/licenses/>.
++#
++# Modified 2026-11-04: only src/ is built (LGPL-2.1 section 2(b)).
++# Modified 2026-11-04: npth-config is not made (LGPL-2.1 section 2(b)).
+ 
+ ## Process this file with automake to produce Makefile.in
+ 
+@@ -32,27 +35,10 @@
+ 
+ EXTRA_DIST = npth-config.in npth.m4 npth.spec.in autogen.sh autogen.rc \
+              HACKING VERSION npth.pc.in build-aux/libtool-patch.sed
+-if INSTALL_NPTH_CONFIG
+-bin_SCRIPTS = npth-config
+-else
+-noinst_SCRIPTS = npth-config
+-endif
+ m4datadir = $(datadir)/aclocal
+ m4data_DATA = npth.m4
+ 
+-if RUN_TESTS
+-tests = tests
+-else
+-tests =
+-endif
+-
+-if HAVE_W32_SYSTEM
+-npthdir = w32
+-else
+-npthdir = src
+-endif
+-
+-SUBDIRS = ${npthdir} ${tests}
++SUBDIRS = src
+ 
+ # Fix the version of the spec file and create a file named VERSION
+ # to be used for patch's Prereq: feature.
+--- a/configure.ac
++++ b/configure.ac
+@@ -17,6 +17,9 @@
+ # License along with this program; if not, see <http://www.gnu.org/licenses/>.
+ #
+ # Modified 2026-11-03: the version list is the release's, not git's (LGPL-2.1 section 2(b)).
++# Modified 2026-11-04: automake runs in foreign mode (LGPL-2.1 section 2(b)).
++# Modified 2026-11-04: w32/ and tests/ are not configured (LGPL-2.1 section 2(b)).
++# Modified 2026-11-04: npth-config is not made (LGPL-2.1 section 2(b)).
+ 
+ # Process this file with autoconf to produce a configure script.
+ 
+@@ -74,7 +77,7 @@
+ ##############################################
+ 
+ AC_CONFIG_AUX_DIR([build-aux])
+-AM_INIT_AUTOMAKE([serial-tests dist-bzip2 no-dist-gzip])
++AM_INIT_AUTOMAKE([foreign serial-tests dist-bzip2 no-dist-gzip])
+ AM_MAINTAINER_MODE
+ AC_CONFIG_SRCDIR([src/npth.c])
+ AC_CONFIG_HEADERS([config.h])
+@@ -498,12 +501,7 @@
+ AC_CONFIG_FILES([Makefile
+ npth.pc
+ src/npth.h
+-w32/npth.h
+-src/Makefile
+-w32/Makefile
+-w32/versioninfo.rc
+-tests/Makefile])
+-AC_CONFIG_FILES(npth-config, chmod +x npth-config)
++src/Makefile])
+ AC_OUTPUT
+ 
+ echo "
